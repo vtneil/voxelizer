@@ -2,9 +2,9 @@
 // By David Levin 2014
 #include <iostream>
 #include <vector>
+#include <ctime>
 #include "CompFab.h"
 #include "Mesh.h"
-#include "bvh/bvh.h"
 
 //Triangle list (global)
 typedef std::vector<CompFab::Triangle> TriangleList;
@@ -35,7 +35,7 @@ int main(int argc, char **argv) {
     unsigned int dim = strtoul(argv[3], nullptr, 10);
     unsigned int use_multicast = strtoul(argv[4], nullptr, 10);
 
-//    std::cout << "Load Mesh : " << argv[1] << "\n";
+    std::cout << "Load Mesh : " << argv[1] << "\n";
     loadMesh(argv[1], dim);
 
 
@@ -50,6 +50,10 @@ int main(int argc, char **argv) {
             {0., 0., 1.},
     };
 
+    clock_t start, end;
+    double cpu_time_used;
+
+    start = clock();
     /********* ASSIGNMENT *********/
     /* Iterate over all voxels in g_voxelGrid and test whether they are inside our outside of the
      * surface defined by the triangles in g_triangleList */
@@ -101,11 +105,16 @@ int main(int argc, char **argv) {
         }
     }
 
+    end = clock();
+    cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
+
+    printf("Voxelizer uses %f seconds for %u grid.\n", cpu_time_used, dim);
 
     // Write out voxel data as obj
     saveVoxelsToObj(argv[2]);
-
     delete g_voxelGrid;
+
+    return 0;
 }
 
 void intersect_tri_1(CompFab::Ray &ray, CompFab::Triangle &triangle,
@@ -202,7 +211,14 @@ int rayTriangleIntersection(CompFab::Ray &ray, CompFab::Triangle &triangle) {
     int out;
     double t, u, v;
 
+
     intersect_tri_2(ray, triangle, out, t, u, v);
+
+//    static size_t cnt = 0;
+//    if (out)
+//        printf("%zu (%f,%f,%f): %f\n", cnt, ray.m_origin.m_x, ray.m_origin.m_y, ray.m_origin.m_z, t);
+//
+//    ++cnt;
 
     return out;
 }

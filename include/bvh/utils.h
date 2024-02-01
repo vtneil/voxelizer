@@ -218,6 +218,8 @@ namespace vt {
         namespace vec {
             namespace _impl {
                 struct _tri_struct {
+
+                public:
                     union {
                         vec3_t v1;
                         vec3_t v2;
@@ -253,17 +255,6 @@ namespace vt {
                     template<typename T>
                     static constexpr void compute(T *, const T *) {}
                 };
-
-                template<size_t N, size_t, typename T>
-                constexpr void _assn(vec_t<N> &dst, const T &v) {
-                    dst[0] = v;
-                }
-
-                template<size_t N, size_t I, typename T, typename ...Ts>
-                constexpr void _assn(vec_t<N> &dst, const Ts &...vs, const T &v) {
-                    dst[N - 1] = v;
-                    _assn<N, I - 1, Ts...>(dst, vs...);
-                }
 
                 template<size_t N>
                 struct _assn_vec_proj {
@@ -398,11 +389,6 @@ namespace vt {
                 _impl::_assn_vec<N>::compute(dst, src);
             }
 
-            template<size_t N, typename ...Ts>
-            constexpr void assn(vec_t<N> &dst, const Ts &...vs) {
-                _impl::_assn<N, N, Ts...>(dst, vs...);
-            }
-
             template<size_t N>
             constexpr void assn_proj(vec_t<N> &dst, const real_t &v) {
                 _impl::_assn_vec_proj<N>::compute(dst, v);
@@ -446,12 +432,11 @@ namespace vt {
         }
 
         namespace intersection {
-            real_t triangle(ray_t &ray, const tri_t tri, real_t &u, real_t &v) {
+            bool triangle(ray_t &ray, const tri_t tri, real_t &t, real_t &u, real_t &v) {
                 // From https://www.graphics.cornell.edu/pubs/1997/MT97.pdf
                 // Two-sided face (with two direction option)
                 vec3_t E1, E2, T, P, Q;
                 real_t det, inv_det;
-                real_t t;
 
                 vec::sub<3>(E1, tri.vertex[1], tri.vertex[0]);
                 vec::sub<3>(E2, tri.vertex[2], tri.vertex[0]);
@@ -462,7 +447,7 @@ namespace vt {
 
                 if (det > -numeric::epsilon &&
                     det < numeric::epsilon)
-                    return numeric::infinity;
+                    return false;
 
                 inv_det = numeric::one / det;
 
@@ -470,32 +455,32 @@ namespace vt {
 
                 u = vec::dot<3>(T, P) * inv_det;
                 if (u < numeric::zero || u > numeric::one)
-                    return numeric::infinity;
+                    return false;
 
                 vec::cross<3>(Q, T, E1);
 
                 v = vec::dot<3>(ray.direction, Q) * inv_det;
                 if (v < numeric::zero || u + v > numeric::one)
-                    return numeric::infinity;
+                    return false;
 
                 t = vec::dot<3>(E2, Q) * inv_det;
 
                 // Comment out for bidirectional ray
                 if (t < 0)
-                    return numeric::infinity;
+                    return false;
                 // End comment
 
                 ray.t = std::min(ray.t, t);
 
-                return t;
+                return true;
             }
 
-            real_t triangle(ray_t &ray, const tri_t &tri) {
-                real_t u, v;
-                return triangle(ray, tri, u, v);
+            bool triangle(ray_t &ray, const tri_t &tri) {
+                real_t t, u, v;
+                return triangle(ray, tri, t, u, v);
             }
 
-            real_t aabb(ray_t &ray, const vec3_t &bmin, const vec3_t &bmax) {
+            real_t aabb(const ray_t &ray, const vec3_t &bmin, const vec3_t &bmax) {
                 real_t tx1 = (bmin[0] - ray.origin[0]) * ray.direction[0], tx2 =
                         (bmax[0] - ray.origin[0]) * ray.direction[0];
                 real_t tmin = std::min(tx1, tx2);

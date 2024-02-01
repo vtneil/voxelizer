@@ -5,6 +5,8 @@
 #include "utils.h"
 #include "aabb.h"
 
+#include "../CompFab.h"
+
 namespace vt {
     namespace _impl {
         struct bvh_node_t {
@@ -49,6 +51,34 @@ namespace vt {
         }
 
     public:
+        template<typename TriList>
+        static bvh_t from_triangles(const TriList *triangles, size_t num_tri) {
+            bvh_t out(num_tri);
+            out.import_triangles(triangles);
+            out.build();
+            return out;
+        }
+
+        void import_triangles(const tri_t *to_import) {
+            ::std::memcpy(tri, to_import, sizeof(tri_t) * m_num_tri);
+        }
+
+        void import_triangles(const CompFab::Triangle *to_import) {
+            for (size_t i = 0; i < m_num_tri; ++i) {
+                tri[i].vertex[0][0] = to_import[i].m_v1.m_pos[0];
+                tri[i].vertex[0][1] = to_import[i].m_v1.m_pos[1];
+                tri[i].vertex[0][2] = to_import[i].m_v1.m_pos[2];
+
+                tri[i].vertex[1][0] = to_import[i].m_v2.m_pos[0];
+                tri[i].vertex[1][1] = to_import[i].m_v2.m_pos[1];
+                tri[i].vertex[1][2] = to_import[i].m_v2.m_pos[2];
+
+                tri[i].vertex[2][0] = to_import[i].m_v3.m_pos[0];
+                tri[i].vertex[2][1] = to_import[i].m_v3.m_pos[1];
+                tri[i].vertex[2][2] = to_import[i].m_v3.m_pos[2];
+            }
+        }
+
         void build() {
             for (size_t i = 0; i < m_num_tri; ++i)
                 tri_idx[i] = i;
@@ -60,13 +90,15 @@ namespace vt {
             root.left_first = 0;
             root.tri_count = m_num_tri;
 
-            // todo: update_bounds, subdivide
+            update_bounds(root_idx);
+            subdivide(root_idx);
         }
 
+    private:
         void update_bounds(size_t node_idx) {
             bvh_node_t &node = bvh_nodes[node_idx];
-            utils::vec::assn(node.aabb.bmin, numeric::infinity);
-            utils::vec::assn(node.aabb.bmax, -numeric::infinity);
+            utils::vec::assn_proj(node.aabb.bmin, numeric::infinity);
+            utils::vec::assn_proj(node.aabb.bmax, -numeric::infinity);
 
             for (size_t first = node.left_first, i = 0; i < node.tri_count; ++i) {
                 size_t leaf_tri_idx = tri_idx[first + i];
@@ -125,8 +157,27 @@ namespace vt {
                     left_sum += bin[i].tri_count;
                     left_count[i] = left_sum;
                     left_box.grow(bin[i].bounds);
+                    left_area[i] = left_box.area();
+
+                    right_sum += bin[Bin - 1 - i].tri_count;
+                    right_count[Bin - 2 - i] = right_sum;
+                    right_box.grow(bin[Bin - 1 - i].bounds);
+                    right_area[Bin - 2 - i] = right_box.area();
+                }
+
+                scale = (bmax - bmin) / static_cast<real_t>(Bin);
+
+                for (size_t i = 0; i < Bin - 1; ++i) {
+                    real_t plane_cost = left_count[i] * left_area[i] + right_count[i] * right_area[i];
+                    if (plane_cost < best_cost) {
+                        axis = a;
+                        split_pos = bmin + scale * static_cast<real_t>(i + 1);
+                        best_cost = plane_cost;
+                    }
                 }
             }
+
+            return best_cost;
         }
 
         void subdivide(size_t node_idx) {
@@ -134,8 +185,43 @@ namespace vt {
 
             size_t axis;
             real_t split_pos;
-            real_t split_cost;
-            real_t no_split_cost;
+            real_t split_cost = find_best_split(node, axis, split_pos);
+            real_t no_split_cost = node.cost();
+
+            if (split_cost > no_split_cost)
+                return;
+
+            size_t i = node.left_first;
+            size_t j = i + node.tri_count - 1;
+
+            while (i <= j) {
+                if (tri[tri_idx[i]].centroid[axis] < split_cost)
+                    ++i;
+                else
+                    std::swap(tri_idx[i], tri_idx[j--]);
+            }
+
+            size_t left_count = i - node.left_first;
+            if (left_count == 0 || left_count == node.tri_count)
+                return;
+
+            size_t left_child_idx = nodes_used++;
+            size_t right_child_idx = nodes_used++;
+
+            bvh_nodes[left_child_idx].left_first = node.left_first;
+            bvh_nodes[left_child_idx].tri_count = left_count;
+            bvh_nodes[right_child_idx].left_first = i;
+            bvh_nodes[right_child_idx].tri_count = node.tri_count - left_count;
+
+            node.left_first = left_child_idx;
+            node.tri_count = 0;
+
+            update_bounds(left_child_idx);
+            update_bounds(right_child_idx);
+
+            // Traverse by recursion
+            subdivide(left_child_idx);
+            subdivide(right_child_idx);
         }
 
     private:
@@ -152,7 +238,9 @@ namespace vt {
         }
 
     public:
-        void intersect_ray(ray_t &ray) {
+        size_t intersect_ray(ray_t &ray) {
+            size_t num_intersection = 0;
+
             static bvh_node_t *stack[64];
             static bvh_node_t *child1 = nullptr;
             static bvh_node_t *child2 = nullptr;
@@ -163,7 +251,8 @@ namespace vt {
             while (true) {
                 if (node->is_leaf()) {
                     for (size_t i = 0; i < node->tri_count; ++i)
-                        utils::intersection::triangle(ray, tri[tri_idx[node->left_first + i]]);
+                        if (utils::intersection::triangle(ray, tri[tri_idx[node->left_first + i]]))
+                            ++num_intersection;
                     if (stack_ptr == 0)
                         break;
                     else
@@ -192,6 +281,8 @@ namespace vt {
                         stack[++stack_ptr] = child2;
                 }
             }
+
+            return num_intersection;
         }
     };
 }

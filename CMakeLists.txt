@@ -12,16 +12,24 @@ add_executable(voxelizer
         main.cpp
 )
 
-add_executable(voxelizer_vdb
+add_executable(voxelizer_bvh
         ${SOURCES}
-        main_vdb.cpp
+        main_bvh.cpp
 )
 
-add_executable(voxelizer_test
+add_executable(voxelizer_bvh_fp
         ${SOURCES}
-        test.cpp
+        main_bvh.cpp
 )
 
 target_compile_options(voxelizer PRIVATE
-        -O3
+        $<$<CONFIG:Release>:-O3 -mavx512f -mavx512cd -mavx512er -mavx512pf>
+)
+
+target_compile_options(voxelizer_bvh PRIVATE
+        $<$<CONFIG:Release>:-O3 -mavx512f -mavx512cd -mavx512er -mavx512pf>
+)
+
+target_compile_options(voxelizer_bvh_fp PRIVATE
+        $<$<CONFIG:Release>:-O3 -mavx512f -mavx512cd -mavx512er -mavx512pf>
 )
