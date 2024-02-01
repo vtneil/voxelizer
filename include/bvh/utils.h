@@ -87,7 +87,7 @@ namespace vt::std {
 }
 
 namespace vt {
-    using real_t = double;
+    using real_t = float;
 
     template<size_t N>
     using vec_t = real_t[N];

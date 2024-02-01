@@ -16,7 +16,7 @@ namespace vt {
 
             constexpr bool is_leaf() const { return tri_count > 0; }
 
-            constexpr real_t cost() const {
+            real_t cost() const {
                 return static_cast<real_t>(tri_count) * aabb.area();
             }
         };

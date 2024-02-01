@@ -1,0 +1,15 @@
+Voxelizer (Plain) uses 1.143497 seconds for 8 grid.
+Voxelizer (BVH) uses 0.407441 seconds for 8 grid.
+Voxelizer (BVH+AVX512+OPENMP) uses 0.033966 seconds for 8 grid.
+
+Voxelizer (Plain) uses 9.408084 seconds for 16 grid.
+Voxelizer (BVH) uses 3.206270 seconds for 16 grid.
+Voxelizer (BVH+AVX512+OPENMP) uses 0.225881 seconds for 16 grid.
+
+Voxelizer (Plain) uses 69.052401 seconds for 32 grid.
+Voxelizer (BVH) uses 25.062985 seconds for 32 grid.
+Voxelizer (BVH+AVX512+OPENMP) uses 1.800340 seconds for 32 grid.
+
+Voxelizer (Plain) uses 550.160452 seconds for 64 grid.
+Voxelizer (BVH) uses 196.585359 seconds for 64 grid.
+Voxelizer (BVH+AVX512+OPENMP) uses 14.368764 seconds for 64 grid.

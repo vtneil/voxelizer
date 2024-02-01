@@ -108,7 +108,7 @@ int main(int argc, char **argv) {
     end = clock();
     cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC;
 
-    printf("Voxelizer uses %f seconds for %u grid.\n", cpu_time_used, dim);
+    printf("Voxelizer (Plain) uses %f seconds for %u grid.\n", cpu_time_used, dim);
 
     // Write out voxel data as obj
     saveVoxelsToObj(argv[2]);

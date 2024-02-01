@@ -22,14 +22,26 @@ add_executable(voxelizer_bvh_fp
         main_bvh.cpp
 )
 
+add_executable(voxelizer_cpu
+        ${SOURCES}
+        main_bvh_omp_avx.cpp
+)
+
 target_compile_options(voxelizer PRIVATE
-        $<$<CONFIG:Release>:-O3 -mavx512f -mavx512cd -mavx512er -mavx512pf>
+        -O3
 )
 
 target_compile_options(voxelizer_bvh PRIVATE
-        $<$<CONFIG:Release>:-O3 -mavx512f -mavx512cd -mavx512er -mavx512pf>
+        -O3
+)
+
+target_compile_options(voxelizer_cpu PRIVATE
+        -O3 -fopenmp -flto -mavx512f -mavx512cd -mavx512er -mavx512pf
+)
+target_link_libraries(voxelizer_cpu PRIVATE
+        -O3 -fopenmp -flto -mavx512f -mavx512cd -mavx512er -mavx512pf
 )
 
 target_compile_options(voxelizer_bvh_fp PRIVATE
-        $<$<CONFIG:Release>:-O3 -mavx512f -mavx512cd -mavx512er -mavx512pf>
+        -O3
 )

@@ -34,7 +34,7 @@ int main(int argc, char **argv) {
 
     start = clock();
     // ************************** BEGIN LOGIC *******************************
-    auto bvh = vt::bvh_t<8>::from_triangles(
+    auto bvh = vt::bvh_t<64>::from_triangles(
             g_triangleList.data(),
             g_triangleList.size()
     );
@@ -48,9 +48,9 @@ int main(int argc, char **argv) {
     for (size_t i = 0; i < nx; ++i) {
         for (size_t j = 0; j < ny; ++j) {
             for (size_t k = 0; k < nz; ++k) {
-                ray.origin[0] = static_cast<double>(i) / static_cast<double>(nx);
-                ray.origin[1] = static_cast<double>(j) / static_cast<double>(ny);
-                ray.origin[2] = static_cast<double>(k) / static_cast<double>(nz);
+                ray.origin[0] = static_cast<vt::real_t>(i) / static_cast<vt::real_t>(nx);
+                ray.origin[1] = static_cast<vt::real_t>(j) / static_cast<vt::real_t>(ny);
+                ray.origin[2] = static_cast<vt::real_t>(k) / static_cast<vt::real_t>(nz);
                 ray.t = vt::numeric::infinity;
                 num = bvh.intersect_ray(ray);
 
